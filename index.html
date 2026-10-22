@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>BakunaPass</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <nav class="government-nav" aria-label="Main navigation">
+      <div class="nav-inner">
+        <a class="government-wordmark" href="#dashboard">DEPARTMENT OF HEALTH</a>
+        <div class="nav-links">
+          <a href="#dashboard">Dashboard</a>
+          <a href="#registry">Registry</a>
+          <a href="#notifications">Notifications</a>
+          <a href="#record-form">Add a record</a>
+        </div>
+        <span class="nav-note">Public health services</span>
+      </div>
+    </nav>
+
+    <section class="city-banner" aria-label="BakunaPass, City of Manila public health registry">
+      <div class="banner-inner">
+        <div class="seal" aria-hidden="true">
+          <svg viewBox="0 0 64 64" role="presentation">
+            <circle cx="32" cy="32" r="29" />
+            <circle class="seal-inner" cx="32" cy="32" r="23" />
+            <path class="seal-mark" d="M32 14 36 25 48 26 39 34 42 46 32 39 22 46 25 34 16 26 28 25Z" />
+            <path class="seal-cross" d="M31 23h2v18h-2zM24 31h18v2H24z" />
+          </svg>
+        </div>
+        <div class="banner-copy">
+          <p>Republic of the Philippines</p>
+          <h1>DEPARTMENT OF HEALTH <span>·</span> BakunaPass</h1>
+          <span class="banner-caption">Community vaccination registry</span>
+        </div>
+        <div class="status-chip"><span></span> Registry active</div>
+      </div>
+      <svg class="skyline" viewBox="0 0 1440 150" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
+        <g fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round">
+          <path d="M0 146V91l58-12v67M58 146V57h24V36h17v21h25v89M124 146V84h58v62M182 146V48h24v-17h23v17h35v98M264 146V101h56v45M320 146V67h25V32l9-15 9 15v35h27v79M390 146V91h58v55M448 146V46h21V25h18v21h19v100M506 146V82h37v-26h15v26h44v64M602 146V62h34V40l14-13 14 13v22h26v84M690 146V95h50v51M740 146V51h28V34l12-19 12 19v17h36v95M828 146V75h57v71M885 146V43h30V28h21v15h34v103M970 146V93h59v53M1029 146V60h26V36l15-15 15 15v24h26v86M1111 146V80h55v66M1166 146V49h25V27h22v22h37v97M1250 146V90h48v56M1298 146V57h32V38l13-16 13 16v19h38v89"/>
+          <path d="M53 57h23M183 48h44M450 46h39M742 51h42M887 43h49M1168 49h42" />
+        </g>
+      </svg>
+    </section>
+
+    <main class="app-shell">
+      <section class="page-heading" id="dashboard">
+        <div>
+          <p class="eyebrow">Public health · Resident services</p>
+          <h2>Vaccination dashboard</h2>
+          <p class="page-intro">Review community immunization records and follow-up needs.</p>
+        </div>
+        <span class="updated-note">HEALTH REGISTRY</span>
+      </section>
+
+      <section class="summary" id="summary" aria-label="Registry summary"></section>
+
+      <div class="report-actions">
+        <button id="export-csv" type="button">Export CSV</button>
+        <button id="print-report" class="secondary" type="button">Print report</button>
+      </div>
+
+      <section class="panel chart-panel compact-panel">
+        <div class="panel-heading">
+          <h2>Coverage overview</h2>
+          <p>Current distribution of status categories across the registry.</p>
+        </div>
+        <div id="status-chart" class="chart-grid"></div>
+      </section>
+
+      <section class="panel form-panel compact-panel" id="record-form">
+        <div class="panel-heading">
+          <h2>Resident vaccination record</h2>
+          <p>Enter the latest immunization details for verification.</p>
+        </div>
+
+        <form id="person-form">
+          <label>
+            Resident name
+            <input type="text" id="name" name="name" placeholder="e.g. Maria Santos" required />
+          </label>
+
+          <label>
+            Doses received
+            <input type="number" id="doses" name="doses" min="0" max="6" value="2" required />
+          </label>
+
+          <label>
+            Most recent dose date
+            <input type="date" id="lastDoseDate" name="lastDoseDate" required />
+          </label>
+
+          <label>
+            Home address
+            <input type="text" id="address" name="address" placeholder="House no./street/barangay/city" />
+          </label>
+
+          <label>
+            Phone number
+            <input type="tel" id="phone" name="phone" placeholder="e.g. 09171234567" />
+          </label>
+
+          <label>
+            Email address
+            <input type="email" id="email" name="email" placeholder="name@example.com" />
+          </label>
+
+          <label class="checkbox-row">
+            <input type="checkbox" id="boosterReceived" name="boosterReceived" />
+            Booster dose received
+          </label>
+
+          <div class="form-actions">
+            <button id="submit-record" type="submit">Submit record</button>
+            <button id="cancel-edit" class="secondary" type="button" hidden>Cancel</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="panel compact-panel" id="notifications">
+        <div class="panel-heading">
+          <h2>Patient notifications</h2>
+          <p>Choose a patient to automatically fill their email address and suggested message. Review or edit the details before sending through the configured email backend.</p>
+        </div>
+        <p id="notification-feedback" class="notification-feedback" role="status" aria-live="polite"></p>
+        <div id="notification-list" class="notification-list"></div>
+      </section>
+
+      <section class="panel list-panel" id="registry">
+        <div class="panel-heading split-heading">
+          <div>
+            <h2>Population health status</h2>
+            <p>Current immunization review for monitored residents.</p>
+          </div>
+          <button id="clear-records" class="secondary small" type="button">Clear all</button>
+        </div>
+
+        <div class="toolbar">
+          <label>
+            Search resident
+            <input id="search-input" type="search" placeholder="Search by name" />
+          </label>
+
+          <label>
+            Filter by status
+            <select id="status-filter">
+              <option value="all">All statuses</option>
+              <option value="Not vaccinated">Not vaccinated</option>
+              <option value="Partially vaccinated">Partially vaccinated</option>
+              <option value="Fully vaccinated">Fully vaccinated</option>
+              <option value="Booster due">Booster due</option>
+              <option value="Booster complete">Booster complete</option>
+            </select>
+          </label>
+
+          <label>
+            Sort by
+            <select id="sort-select">
+              <option value="name">Name</option>
+              <option value="status">Status</option>
+              <option value="date">Recent dose date</option>
+            </select>
+          </label>
+        </div>
+
+        <div id="record-list" class="record-list"></div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div><strong>BakunaPass</strong><span> A community vaccination tracking service</span></div>
+      <span>For local health registry use</span>
+    </footer>
+
+    <script type="module" src="app.js"></script>
+  </body>
+</html>

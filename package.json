@@ -1,0 +1,15 @@
+{
+  "name": "bakunapass",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.7",
+    "nodemailer": "^10.0.13",
+    "twilio": "^5.5.2"
+  }
+}
