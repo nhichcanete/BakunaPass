@@ -1,9 +1,13 @@
 import {
   buildPatientNotification,
   calculateVaccinationStatus,
+  createEntryId,
   deleteEntry,
+  ensureEntryIds,
   exportRecordsToCsv,
   getPassExpiryDate,
+  isFutureDate,
+  toLocalDateString,
   summarizeEntries,
   updateEntry,
 } from './vaccination.js';
@@ -32,8 +36,9 @@ const seedRecords = [
 ];
 
 const state = {
-  entries: loadEntries(),
+  entries: ensureEntryIds(loadEntries()),
 };
+const TOKEN_KEY = 'bakunapass.apiToken';
 
 let editingIndex = null;
 let selectedNotificationIndex = null;
@@ -52,6 +57,14 @@ const printButton = document.querySelector('#print-report');
 const chart = document.querySelector('#status-chart');
 const notificationList = document.querySelector('#notification-list');
 const notificationFeedback = document.querySelector('#notification-feedback');
+const recordFeedback = document.querySelector('#record-feedback');
+const lastDoseInput = document.querySelector('#lastDoseDate');
+
+function setFeedback(element, message, type = '') {
+  element.textContent = message;
+  element.classList.toggle('is-success', type === 'success');
+  element.classList.toggle('is-error', type === 'error');
+}
 
 function loadEntries() {
   try {
@@ -124,10 +137,23 @@ function renderNotifications() {
         ${options}
       </select>
     </label>
-    <div class="notification-item" id="notification-composer" ${selectedNotificationIndex === null ? 'hidden' : ''}>
+    <div class="notification-item notification-selection" ${selectedNotificationIndex === null ? 'hidden' : ''}>
       <div class="notification-title">
-        <strong id="notification-patient-name"></strong>
+        <div>
+          <strong id="notification-patient-name"></strong>
+          <span class="notification-email" id="notification-patient-email"></span>
+        </div>
         <span class="status-badge status-pending" id="notification-patient-status"></span>
+      </div>
+      <button type="button" class="small" data-action="compose" ${selectedNotificationIndex === null ? 'disabled' : ''}>Compose email</button>
+    </div>
+    <dialog class="notification-dialog" id="notification-dialog" aria-labelledby="notification-dialog-title">
+      <div class="notification-dialog-heading">
+        <div>
+          <p class="eyebrow">Patient notification</p>
+          <h2 id="notification-dialog-title">Compose email</h2>
+        </div>
+        <button type="button" class="secondary small" data-action="close-composer" aria-label="Close message composer">Close</button>
       </div>
       <form class="notification-form">
         <label>
@@ -139,6 +165,10 @@ function renderNotifications() {
           <input type="text" name="subject" value="BakunaPass Health Notification" maxlength="120" required />
         </label>
         <label>
+          Access token <small>(only if the server has NOTIFICATION_API_TOKEN set)</small>
+          <input type="password" name="token" autocomplete="off" />
+        </label>
+        <label>
           Message
           <textarea name="message" rows="5" maxlength="4000" required></textarea>
         </label>
@@ -146,7 +176,7 @@ function renderNotifications() {
           <button type="submit" class="small" data-action="notify">Send email</button>
         </div>
       </form>
-    </div>
+    </dialog>
   `;
 
   if (selectedNotificationIndex !== null) {
@@ -156,7 +186,7 @@ function renderNotifications() {
 
 function populateNotificationComposer(index) {
   const entry = state.entries[index];
-  const composer = document.querySelector('#notification-composer');
+  const composer = notificationList.querySelector('#notification-dialog');
   if (!entry || !composer) {
     return;
   }
@@ -169,20 +199,25 @@ function populateNotificationComposer(index) {
   }).status;
 
   composer.querySelector('[name="to"]').value = entry.email || '';
+  composer.querySelector('[name="token"]').value = sessionStorage.getItem(TOKEN_KEY) || '';
   composer.querySelector('[name="subject"]').value = 'BakunaPass Health Notification';
   composer.querySelector('[name="message"]').value = buildPatientNotification(entry, new Date());
   document.querySelector('#notification-patient-name').textContent = entry.name;
+  document.querySelector('#notification-patient-email').textContent = entry.email || 'No email on file';
   document.querySelector('#notification-patient-status').textContent = status;
 }
 
-async function sendNotificationEmail({ to, subject, message }, button) {
-  notificationFeedback.textContent = `Sending email to ${to}...`;
+async function sendNotificationEmail({ to, subject, message, token }, button) {
+  setFeedback(notificationFeedback, `Sending email to ${to}...`);
   button.disabled = true;
 
   try {
     const response = await fetch('/api/notifications', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
       body: JSON.stringify({
         channel: 'email',
         to,
@@ -196,16 +231,18 @@ async function sendNotificationEmail({ to, subject, message }, button) {
       throw new Error(result.error || 'Notification could not be sent.');
     }
 
-    notificationFeedback.textContent = `Email sent to ${to}.`;
+    setFeedback(notificationFeedback, `Email sent successfully to ${to}.`, 'success');
+    return true;
   } catch (error) {
-    notificationFeedback.textContent = error.message || 'Could not reach the notification server.';
+    setFeedback(notificationFeedback, error.message || 'Could not reach the notification server.', 'error');
+    return false;
   } finally {
     button.disabled = false;
   }
 }
 
 function renderSummary() {
-  const totals = summarizeEntries(state.entries, new Date('2026-09-30'));
+  const totals = summarizeEntries(state.entries, new Date());
 
   const cards = [
     { label: 'Total records', value: totals.total },
@@ -231,7 +268,7 @@ function renderSummary() {
         doses: entry.doses,
         lastDoseDate: entry.lastDoseDate,
         boosterReceived: entry.boosterReceived,
-        referenceDate: new Date('2026-09-30'),
+        referenceDate: new Date(),
       });
       return result.status === status;
     }).length;
@@ -287,7 +324,7 @@ function getFilteredEntries() {
         doses: entry.doses,
         lastDoseDate: entry.lastDoseDate,
         boosterReceived: entry.boosterReceived,
-        referenceDate: new Date('2026-09-30'),
+        referenceDate: new Date(),
       });
       return result.status === selectedStatus;
     });
@@ -300,13 +337,13 @@ function getFilteredEntries() {
         doses: a.doses,
         lastDoseDate: a.lastDoseDate,
         boosterReceived: a.boosterReceived,
-        referenceDate: new Date('2026-09-30'),
+        referenceDate: new Date(),
       }).status;
       const statusB = calculateVaccinationStatus({
         doses: b.doses,
         lastDoseDate: b.lastDoseDate,
         boosterReceived: b.boosterReceived,
-        referenceDate: new Date('2026-09-30'),
+        referenceDate: new Date(),
       }).status;
       return statusA.localeCompare(statusB);
     });
@@ -337,31 +374,31 @@ function renderRecords() {
         doses: entry.doses,
         lastDoseDate: entry.lastDoseDate,
         boosterReceived: entry.boosterReceived,
-        referenceDate: new Date('2026-09-30'),
+        referenceDate: new Date(),
       });
       const passExpiry = getPassExpiryDate(entry.lastDoseDate, entry.boosterReceived);
 
       return `
         <article class="record-item">
           <div>
-            <h3>${entry.name}</h3>
-            <div class="record-meta">${entry.doses} dose(s) · Last dose: ${entry.lastDoseDate || 'Not supplied'}</div>
+            <h3>${escapeHtml(entry.name)}</h3>
+            <div class="record-meta">${escapeHtml(entry.doses)} dose(s) · Last dose: ${escapeHtml(entry.lastDoseDate || 'Not supplied')}</div>
             <div class="record-detail">
-              ${entry.address ? `Address: ${entry.address}` : 'Address: not provided'}
-              ${entry.phone ? ` · Phone: ${entry.phone}` : ''}
-              ${entry.email ? ` · Email: ${entry.email}` : ''}
+              ${entry.address ? `Address: ${escapeHtml(entry.address)}` : 'Address: not provided'}
+              ${entry.phone ? ` · Phone: ${escapeHtml(entry.phone)}` : ''}
+              ${entry.email ? ` · Email: ${escapeHtml(entry.email)}` : ''}
             </div>
             <div class="record-detail">
-              ${result.message}
-              ${passExpiry ? ` · Pass review due: ${passExpiry}` : ''}
+              ${escapeHtml(result.message)}
+              ${passExpiry ? ` · Pass review due: ${escapeHtml(passExpiry)}` : ''}
             </div>
           </div>
 
           <div class="record-actions">
             <span class="status-badge ${getBadgeClass(result.status)}">${result.status}</span>
             <div class="button-row">
-              <button type="button" class="secondary" data-action="edit" data-name="${entry.name}">Update</button>
-              <button type="button" class="danger" data-action="delete" data-name="${entry.name}">Delete</button>
+              <button type="button" class="secondary" data-action="edit" data-id="${escapeHtml(entry.id)}">Update</button>
+              <button type="button" class="danger" data-action="delete" data-id="${escapeHtml(entry.id)}">Delete</button>
             </div>
           </div>
         </article>
@@ -376,8 +413,8 @@ recordList.addEventListener('click', (event) => {
     return;
   }
 
-  const name = button.dataset.name;
-  const index = state.entries.findIndex((entry) => entry.name === name);
+  const id = button.dataset.id;
+  const index = state.entries.findIndex((entry) => entry.id === id);
 
   if (index === -1) {
     return;
@@ -417,14 +454,37 @@ notificationList.addEventListener('change', (event) => {
   }
 
   selectedNotificationIndex = event.target.value === '' ? null : Number(event.target.value);
-  const composer = document.querySelector('#notification-composer');
-  if (composer) {
-    composer.hidden = selectedNotificationIndex === null;
+  const selection = notificationList.querySelector('.notification-selection');
+  if (selection) {
+    selection.hidden = selectedNotificationIndex === null;
+  }
+  const composeButton = notificationList.querySelector('[data-action="compose"]');
+  if (composeButton) {
+    composeButton.disabled = selectedNotificationIndex === null;
   }
   if (selectedNotificationIndex !== null) {
     populateNotificationComposer(selectedNotificationIndex);
   }
-  notificationFeedback.textContent = '';
+  setFeedback(notificationFeedback, '');
+});
+
+notificationList.addEventListener('click', (event) => {
+  const button = event.target.closest('[data-action]');
+  if (!button) {
+    return;
+  }
+
+  if (button.dataset.action === 'compose') {
+    const dialog = notificationList.querySelector('#notification-dialog');
+    if (selectedNotificationIndex !== null && dialog && !dialog.open) {
+      dialog.showModal();
+      dialog.querySelector('[name="to"]').focus();
+    }
+  }
+
+  if (button.dataset.action === 'close-composer') {
+    notificationList.querySelector('#notification-dialog')?.close();
+  }
 });
 
 notificationList.addEventListener('submit', (event) => {
@@ -436,11 +496,20 @@ notificationList.addEventListener('submit', (event) => {
   event.preventDefault();
   const formData = new FormData(notificationForm);
   const button = notificationForm.querySelector('[data-action="notify"]');
+  const token = formData.get('token').toString().trim();
+  if (token) {
+    sessionStorage.setItem(TOKEN_KEY, token);
+  }
   sendNotificationEmail({
+    token,
     to: formData.get('to').toString().trim(),
     subject: formData.get('subject').toString().trim(),
     message: formData.get('message').toString().trim(),
-  }, button);
+  }, button).then((sent) => {
+    if (sent) {
+      notificationList.querySelector('#notification-dialog')?.close();
+    }
+  });
 });
 
 form.addEventListener('submit', (event) => {
@@ -461,14 +530,26 @@ form.addEventListener('submit', (event) => {
     return;
   }
 
+  if (isFutureDate(nextEntry.lastDoseDate)) {
+    lastDoseInput.setCustomValidity('The most recent dose date cannot be in the future.');
+    lastDoseInput.reportValidity();
+    return;
+  }
+
+  const wasEditing = editingIndex !== null;
   if (editingIndex === null) {
-    state.entries.push(nextEntry);
+    state.entries.push({ ...nextEntry, id: createEntryId() });
   } else {
     state.entries = updateEntry(state.entries, editingIndex, nextEntry);
   }
 
   saveEntries();
   resetForm();
+  setFeedback(
+    recordFeedback,
+    `Patient record ${wasEditing ? 'updated' : 'added'} successfully for ${nextEntry.name}.`,
+    'success',
+  );
   renderSummary();
   renderNotifications();
   renderRecords();
@@ -476,12 +557,16 @@ form.addEventListener('submit', (event) => {
 
 cancelButton.addEventListener('click', () => {
   resetForm();
+  setFeedback(recordFeedback, '');
 });
 
 searchInput.addEventListener('input', renderRecords);
 statusFilter.addEventListener('change', renderRecords);
 sortSelect.addEventListener('change', renderRecords);
 clearAllButton.addEventListener('click', () => {
+  if (state.entries.length && !window.confirm(`Delete all ${state.entries.length} records? Export a CSV first if you need a backup. This cannot be undone.`)) {
+    return;
+  }
   state.entries = [];
   selectedNotificationIndex = null;
   saveEntries();
@@ -507,6 +592,8 @@ printButton.addEventListener('click', () => {
   window.print();
 });
 
+lastDoseInput.max = toLocalDateString();
+lastDoseInput.addEventListener('input', () => lastDoseInput.setCustomValidity(''));
 resetForm();
 renderSummary();
 renderNotifications();

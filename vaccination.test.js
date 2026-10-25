@@ -5,7 +5,10 @@ import {
   buildPatientNotification,
   calculateVaccinationStatus,
   deleteEntry,
+  ensureEntryIds,
   exportRecordsToCsv,
+  getPassExpiryDate,
+  isFutureDate,
   resolveNotificationChannel,
   updateEntry,
 } from './vaccination.js';
@@ -150,4 +153,23 @@ test('prefers email delivery when the patient has an email address', () => {
   });
 
   assert.equal(channel, 'email');
+});
+
+test('gives every record a unique id and keeps existing ids', () => {
+  const result = ensureEntryIds([{ name: 'Maria Santos' }, { name: 'Maria Santos' }, { id: 'keep', name: 'Ana' }]);
+
+  assert.notEqual(result[0].id, result[1].id);
+  assert.equal(result[2].id, 'keep');
+});
+
+test('detects dose dates in the future', () => {
+  assert.equal(isFutureDate('2026-10-23', new Date(2026, 9, 22)), true);
+  assert.equal(isFutureDate('2026-10-22', new Date(2026, 9, 22)), false);
+  assert.equal(isFutureDate('', new Date(2026, 9, 22)), false);
+});
+
+test('pass review date is 180 days after the last dose, and none once a booster is recorded', () => {
+  assert.equal(getPassExpiryDate('2026-01-01', false), '2026-06-30');
+  assert.equal(getPassExpiryDate('2026-01-01', true), null);
+  assert.equal(getPassExpiryDate('', false), null);
 });

@@ -1,3 +1,22 @@
+export const PRIMARY_SERIES_VALID_DAYS = 180;
+
+export function createEntryId() {
+  return globalThis.crypto?.randomUUID?.() ?? `id-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
+export function ensureEntryIds(entries = []) {
+  return (Array.isArray(entries) ? entries : []).map((entry) => (entry.id ? entry : { ...entry, id: createEntryId() }));
+}
+
+export function toLocalDateString(date = new Date()) {
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
+
+export function isFutureDate(dateString, referenceDate = new Date()) {
+  return Boolean(dateString) && String(dateString) > toLocalDateString(new Date(referenceDate));
+}
+
 function normalizeDoseCount(value) {
   const numericValue = Number(value);
   return Number.isFinite(numericValue) ? numericValue : 0;
@@ -85,7 +104,7 @@ export function calculateVaccinationStatus({
 
   const dayDifference = toDaysDifference(lastDose, reference);
 
-  if (dayDifference > 180) {
+  if (dayDifference > PRIMARY_SERIES_VALID_DAYS) {
     return {
       status: 'Booster due',
       valid: false,
@@ -128,9 +147,12 @@ export function getPassExpiryDate(lastDoseDate, boosterReceived = false) {
     return null;
   }
 
-  const normalizedBoosterState = normalizeBoosterStatus(boosterReceived);
-  const daysToReview = normalizedBoosterState ? 180 : 180;
-  date.setDate(date.getDate() + daysToReview);
+  // A recorded booster keeps the pass valid (see calculateVaccinationStatus), so there is no review date.
+  if (normalizeBoosterStatus(boosterReceived)) {
+    return null;
+  }
+
+  date.setUTCDate(date.getUTCDate() + PRIMARY_SERIES_VALID_DAYS);
   return date.toISOString().slice(0, 10);
 }
 
