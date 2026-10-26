@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createNotificationHtml, createServer } from './server.js';
+import { createTotpCode } from './mfa.js';
+import { createStore } from './store.js';
 
 async function withServer(options, run) {
   const server = createServer(options);
@@ -13,6 +15,7 @@ async function withServer(options, run) {
     await new Promise((resolve, reject) => {
       server.close((error) => (error ? reject(error) : resolve()));
     });
+    options.authStore?.close();
   }
 }
 
@@ -131,5 +134,95 @@ test('static files are served with security headers', async () => {
   await withServer({}, async (baseUrl) => {
     const response = await fetch(`${baseUrl}/`);
     assert.match(response.headers.get('content-security-policy'), /frame-ancestors 'none'/);
+  });
+});
+
+test('login and registration page assets are served separately from the dashboard', async () => {
+  await withServer({}, async (baseUrl) => {
+    const page = await fetch(`${baseUrl}/auth`);
+    assert.equal(page.status, 200);
+    assert.match(page.headers.get('content-type'), /text\/html/);
+    const markup = await page.text();
+    assert.match(markup, /id="login-form"/);
+    assert.match(markup, /id="register-form"/);
+    assert.match(markup, /Create account/);
+    assert.doesNotMatch(markup, /local-demo-button|Continue with local demo/);
+    assert.match(markup, /auth-brand-seal/);
+
+    const staticPage = await fetch(`${baseUrl}/auth.html`);
+    assert.equal(staticPage.status, 200);
+    const loginAlias = await fetch(`${baseUrl}/login`);
+    assert.equal(loginAlias.status, 200);
+    const trailingSlash = await fetch(`${baseUrl}/auth/`);
+    assert.equal(trailingSlash.status, 200);
+    assert.equal(new URL(trailingSlash.url).pathname, '/auth.html');
+
+    const script = await fetch(`${baseUrl}/auth.js`);
+    assert.equal(script.status, 200);
+    assert.match(script.headers.get('content-type'), /javascript/);
+  });
+});
+
+test('public routes open sign-in first and protect the workspace behind an authenticated session', async () => {
+  const apiUsers = [{ username: 'portal-admin', password: 'portal-admin-password', role: 'admin' }];
+  const authStore = createStore(':memory:');
+  await withServer({ jwtSecret: 'a-test-signing-secret-that-is-long-enough', apiUsers, authStore }, async (baseUrl) => {
+    for (const route of ['/', '/index.html', '/workspace']) {
+      const page = await fetch(`${baseUrl}${route}`, { redirect: 'manual' });
+      assert.equal(page.status, 302);
+      assert.equal(page.headers.get('location'), '/auth.html');
+    }
+    const login = await fetch(`${baseUrl}/api/v1/auth/token`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: 'portal-admin', password: 'portal-admin-password' }),
+    });
+    assert.equal(login.status, 202);
+    const setupCookie = login.headers.get('set-cookie').split(';')[0];
+    const setup = await fetch(`${baseUrl}/api/v1/auth/mfa/setup`, {
+      method: 'POST',
+      headers: { Cookie: setupCookie, 'Content-Type': 'application/json' },
+      body: '{}',
+    });
+    const { secret } = await setup.json();
+    const verification = await fetch(`${baseUrl}/api/v1/auth/mfa/verify`, {
+      method: 'POST',
+      headers: { Cookie: setupCookie, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code: createTotpCode(secret) }),
+    });
+    assert.equal(verification.status, 200);
+    assert.match(verification.headers.get('set-cookie'), /HttpOnly/);
+    assert.match(verification.headers.get('set-cookie'), /SameSite=Strict/);
+    const cookie = verification.headers.get('set-cookie').split(';')[0];
+    const session = await fetch(`${baseUrl}/api/v1/auth/session`, { headers: { Cookie: cookie } });
+    assert.deepEqual(await session.json(), {
+      role: 'admin',
+      username: 'portal-admin',
+      mfaEnabled: true,
+    });
+    const workspace = await fetch(`${baseUrl}/workspace`, { headers: { Cookie: cookie } });
+    assert.equal(workspace.status, 200);
+    assert.match(workspace.headers.get('content-type'), /text\/html/);
+    assert.match(await workspace.text(), /BakunaPass operations portal/);
+    const signedOut = await fetch(`${baseUrl}/api/v1/auth/logout`, {
+      method: 'POST',
+      headers: { Cookie: cookie },
+    });
+    assert.equal(signedOut.status, 200);
+    assert.match(signedOut.headers.get('set-cookie'), /Max-Age=0/);
+    const afterLogout = await fetch(`${baseUrl}/workspace`, {
+      headers: { Cookie: signedOut.headers.get('set-cookie').split(';')[0] },
+      redirect: 'manual',
+    });
+    assert.equal(afterLogout.status, 302);
+  });
+});
+
+test('operations portal module is served as a browser module', async () => {
+  await withServer({}, async (baseUrl) => {
+    const response = await fetch(`${baseUrl}/integration-ui.js`);
+    assert.equal(response.status, 200);
+    assert.match(response.headers.get('content-type'), /javascript/);
+    assert.match(await response.text(), /Assign a registered batch/);
   });
 });

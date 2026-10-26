@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<vaccineBatch>
+  <vaccineId>VAX-DEMO-05</vaccineId>
+  <vaccineName>BCG</vaccineName>
+  <currentTempCelsius>4.5</currentTempCelsius>
+  <safeRangeCelsius min="2" max="8" />
+  <humidityPercent>60</humidityPercent>
+  <shipmentId>SHIP-DEMO-05</shipmentId>
+  <latitude>14.5995</latitude>
+  <longitude>120.9842</longitude>
+</vaccineBatch>

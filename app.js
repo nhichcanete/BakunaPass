@@ -12,33 +12,21 @@ import {
   updateEntry,
 } from './vaccination.js';
 
-const STORAGE_KEY = 'bakunapass.entries';
+async function initializeRegistry() {
+  const response = await fetch('/api/v1/auth/session');
+  if (!response.ok) {
+    return;
+  }
+  const session = await response.json();
+  if (session.role !== 'health_worker') {
+    return;
+  }
 
-const seedRecords = [
-  {
-    name: 'Maria Santos',
-    doses: 2,
-    lastDoseDate: '2026-06-15',
-    boosterReceived: false,
-  },
-  {
-    name: 'John Smith',
-    doses: 1,
-    lastDoseDate: '2026-09-10',
-    boosterReceived: false,
-  },
-  {
-    name: 'Aisha Khan',
-    doses: 3,
-    lastDoseDate: '2026-08-20',
-    boosterReceived: true,
-  },
-];
+  const storageKey = `bakunapass.entries.${encodeURIComponent(session.username)}`;
 
 const state = {
   entries: ensureEntryIds(loadEntries()),
 };
-const TOKEN_KEY = 'bakunapass.apiToken';
 
 let editingIndex = null;
 let selectedNotificationIndex = null;
@@ -68,20 +56,20 @@ function setFeedback(element, message, type = '') {
 
 function loadEntries() {
   try {
-    const saved = localStorage.getItem(STORAGE_KEY);
+    const saved = localStorage.getItem(storageKey);
     if (!saved) {
-      return [...seedRecords];
+      return [];
     }
 
     const parsed = JSON.parse(saved);
-    return Array.isArray(parsed) && parsed.length ? parsed : [...seedRecords];
+    return Array.isArray(parsed) ? parsed : [];
   } catch {
-    return [...seedRecords];
+    return [];
   }
 }
 
 function saveEntries() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state.entries));
+  localStorage.setItem(storageKey, JSON.stringify(state.entries));
 }
 
 function resetForm() {
@@ -199,7 +187,6 @@ function populateNotificationComposer(index) {
   }).status;
 
   composer.querySelector('[name="to"]').value = entry.email || '';
-  composer.querySelector('[name="token"]').value = sessionStorage.getItem(TOKEN_KEY) || '';
   composer.querySelector('[name="subject"]').value = 'BakunaPass Health Notification';
   composer.querySelector('[name="message"]').value = buildPatientNotification(entry, new Date());
   document.querySelector('#notification-patient-name').textContent = entry.name;
@@ -497,9 +484,6 @@ notificationList.addEventListener('submit', (event) => {
   const formData = new FormData(notificationForm);
   const button = notificationForm.querySelector('[data-action="notify"]');
   const token = formData.get('token').toString().trim();
-  if (token) {
-    sessionStorage.setItem(TOKEN_KEY, token);
-  }
   sendNotificationEmail({
     token,
     to: formData.get('to').toString().trim(),
@@ -598,3 +582,8 @@ resetForm();
 renderSummary();
 renderNotifications();
 renderRecords();
+}
+
+initializeRegistry().catch((error) => {
+  console.error('Vaccination registry could not be initialized:', error);
+});

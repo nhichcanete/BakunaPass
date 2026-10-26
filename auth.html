@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#352c54" />
+    <meta name="description" content="Sign in or register for the BakunaPass health operations workspace." />
+    <title>Sign in · BakunaPass</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body class="auth-page">
+    <main class="auth-layout">
+      <section class="auth-story" aria-labelledby="auth-brand">
+        <div class="auth-brand" id="auth-brand">
+          <span class="auth-brand-seal" aria-hidden="true">
+            <svg viewBox="0 0 64 64" role="presentation">
+              <circle cx="32" cy="32" r="29" />
+              <circle class="seal-inner" cx="32" cy="32" r="23" />
+              <path class="seal-mark" d="M32 14 36 25 48 26 39 34 42 46 32 39 22 46 25 34 16 26 28 25Z" />
+              <path class="seal-cross" d="M31 23h2v18h-2zM24 31h18v2H24z" />
+            </svg>
+          </span>
+          <span><strong>BakunaPass</strong><small>Connected vaccine services</small></span>
+        </div>
+
+        <div class="auth-story-copy">
+          <p class="auth-kicker"><span></span> RURAL HEALTH · COLD-CHAIN · INVENTORY</p>
+          <h1>Care moves<br />better <em>together.</em></h1>
+          <p class="auth-story-intro">A shared operations workspace to keep vaccine requests, shipment conditions, and warehouse stock in view.</p>
+        </div>
+
+        <div class="auth-illustration" aria-hidden="true">
+          <div class="orbit orbit-one"></div>
+          <div class="orbit orbit-two"></div>
+          <div class="route-line"></div>
+          <div class="route-node node-clinic"><span>+</span></div>
+          <div class="route-node node-warehouse"><span>▦</span></div>
+          <div class="route-node node-cold"><span>✳</span></div>
+          <div class="route-label label-clinic">RHU CLINIC</div>
+          <div class="route-label label-stock">SAFE STOCK</div>
+          <div class="route-label label-transit">COLD CHAIN</div>
+          <div class="route-pulse"></div>
+        </div>
+
+        <div class="auth-story-foot">
+          <span class="story-dot"></span>
+          <span>One connected view, from warehouse to community.</span>
+        </div>
+      </section>
+
+      <section class="auth-main" aria-labelledby="auth-heading">
+        <div class="auth-topline">
+          <span>HEALTH OPERATIONS PORTAL</span>
+          <span>AUTHORIZED STAFF ACCESS</span>
+        </div>
+
+        <div class="auth-card">
+          <div class="auth-heading">
+            <p class="eyebrow">Welcome to your workspace</p>
+            <h2 id="auth-heading">Good to see you.</h2>
+            <p>Use your account to continue securely.</p>
+          </div>
+
+          <div class="auth-tabs" role="tablist" aria-label="Account access">
+            <button id="login-tab" class="auth-tab is-active" type="button" role="tab" aria-selected="true" aria-controls="login-panel">Sign in</button>
+            <button id="register-tab" class="auth-tab" type="button" role="tab" aria-selected="false" aria-controls="register-panel">Create account</button>
+          </div>
+
+          <p id="auth-feedback" class="auth-feedback" role="status" aria-live="polite"></p>
+
+          <section id="login-panel" role="tabpanel" aria-labelledby="login-tab">
+            <form id="login-form" class="auth-form">
+              <label for="login-username">Work email or username</label>
+              <input id="login-username" name="username" type="text" autocomplete="username" placeholder="Enter your work email or username" required />
+
+              <div class="auth-label-row">
+                <label for="login-password">Password</label>
+                <span>Use your assigned credentials</span>
+              </div>
+              <input id="login-password" name="password" type="password" autocomplete="current-password" placeholder="Enter your password" required />
+
+              <button class="auth-submit" type="submit">Sign in to workspace <span aria-hidden="true">→</span></button>
+            </form>
+            <section id="mfa-setup-panel" class="mfa-panel" hidden>
+              <div class="role-note">
+                <span aria-hidden="true">◇</span>
+                <p><strong>Secure your account</strong><br />Add BakunaPass to an authenticator app using the setup link or enter the secret key manually, then enter its current six-digit code.</p>
+              </div>
+              <p>Authenticator setup link: <a id="mfa-authenticator-link">Open authenticator app</a></p>
+              <label for="mfa-secret">Setup key</label>
+              <code id="mfa-secret" class="mfa-secret"></code>
+              <form id="mfa-setup-form" class="auth-form">
+                <label for="mfa-setup-code">Authenticator code</label>
+                <input id="mfa-setup-code" name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" minlength="6" maxlength="6" placeholder="6-digit code" required />
+                <button class="auth-submit" type="submit">Enable two-factor sign-in <span aria-hidden="true">→</span></button>
+              </form>
+            </section>
+
+            <section id="mfa-challenge-panel" class="mfa-panel" hidden>
+              <p>Enter the current six-digit code from your authenticator app. A saved one-time recovery code also works.</p>
+              <form id="mfa-challenge-form" class="auth-form">
+                <label for="mfa-challenge-code">Authenticator or recovery code</label>
+                <input id="mfa-challenge-code" name="code" autocomplete="one-time-code" inputmode="text" maxlength="32" placeholder="Enter your code" required />
+                <button class="auth-submit" type="submit">Verify and sign in <span aria-hidden="true">→</span></button>
+              </form>
+            </section>
+
+            <section id="mfa-recovery-panel" class="mfa-panel" hidden>
+              <div class="role-note">
+                <span aria-hidden="true">!</span>
+                <p><strong>Save your recovery codes</strong><br />Each code works once. Store them somewhere private; they will not be shown again.</p>
+              </div>
+              <pre id="mfa-recovery-codes" class="mfa-recovery-codes"></pre>
+              <button id="mfa-continue" class="auth-submit" type="button">I saved these codes — continue <span aria-hidden="true">→</span></button>
+            </section>
+          </section>
+
+          <section id="register-panel" role="tabpanel" aria-labelledby="register-tab" hidden>
+            <div class="role-note">
+              <span aria-hidden="true">◎</span>
+              <p><strong>Facility staff account</strong><br />Your account starts with limited access for submitting and tracking your facility's vaccine requisitions. Sign in with your work email. An administrator can assign a role after verifying your staff details.</p>
+            </div>
+            <p id="registration-unavailable" class="role-note" hidden>Account creation is not configured yet. Contact your system administrator.</p>
+            <form id="register-form" class="auth-form">
+              <label for="register-full-name">Full name</label>
+              <input id="register-full-name" name="fullName" autocomplete="name" maxlength="80" placeholder="As shown on your staff identification" required />
+
+              <label for="register-email">Work email</label>
+              <input id="register-email" name="email" type="email" autocomplete="email" maxlength="254" placeholder="name@health-office.gov" required />
+
+              <label for="register-facility">Clinic or health facility</label>
+              <input id="register-facility" name="facility" maxlength="80" placeholder="RHU or health facility name" required />
+
+              <label for="register-staff-id">Staff or employee ID</label>
+              <input id="register-staff-id" name="staffId" maxlength="40" pattern="[A-Za-z0-9._\x2f\x2d]{2,40}" placeholder="As shown on your staff ID" required />
+
+              <label for="register-job-title">Job title / access category</label>
+              <div class="auth-select-wrap">
+                <select id="register-job-title" name="jobTitle" required>
+                  <option value="" selected disabled>Select your staff category</option>
+                  <option value="Facility staff / vaccine requester">Facility staff / vaccine requester</option>
+                  <option value="Public health nurse / midwife">Public health nurse / midwife</option>
+                  <option value="Cold-chain / logistics officer">Cold-chain / logistics officer</option>
+                  <option value="Operations / warehouse manager">Operations / warehouse manager</option>
+                </select>
+              </div>
+              <small class="form-help">Choose the category that best matches your official role. An administrator verifies your details and assigns access; registration does not grant the requested role automatically.</small>
+
+              <label for="register-password">Create a password</label>
+              <input id="register-password" name="password" type="password" autocomplete="new-password" minlength="12" maxlength="128" placeholder="At least 12 characters" required />
+
+              <label for="register-confirm">Confirm password</label>
+              <input id="register-confirm" name="confirmPassword" type="password" autocomplete="new-password" minlength="12" maxlength="128" placeholder="Re-enter your password" required />
+
+              <button class="auth-submit" type="submit">Create account <span aria-hidden="true">→</span></button>
+            </form>
+          </section>
+
+          <div class="auth-divider"><span>SECURE ACCESS</span></div>
+          <p class="auth-security-note"><span aria-hidden="true">◇</span> Your role controls which operational tools are available to you.</p>
+        </div>
+
+        <footer class="auth-footer">
+          <span>BakunaPass · Connected vaccine services</span>
+          <span>Access is verified and role controlled</span>
+        </footer>
+      </section>
+    </main>
+    <script type="module" src="/auth.js"></script>
+  </body>
+</html>

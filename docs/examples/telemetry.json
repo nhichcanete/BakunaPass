@@ -1,0 +1,13 @@
+{
+  "vaccineId": "VAX-DEMO-04",
+  "vaccineName": "Measles",
+  "currentTempCelsius": 4.5,
+  "safeRangeCelsius": {
+    "min": 2,
+    "max": 8
+  },
+  "humidityPercent": 60,
+  "shipmentId": "SHIP-DEMO-04",
+  "latitude": 14.5995,
+  "longitude": 120.9842
+}

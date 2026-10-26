@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+  <soap:Body>
+    <GetInventoryBatchResponse xmlns="urn:BakunaPassLegacyInventory">
+      <InventoryBatch>
+        <VaccineId>VAX-1001</VaccineId>
+        <VaccineName>Pentavalent (DPT-HepB-Hib)</VaccineName>
+        <WarehouseCode>WAREHOUSE-MNL</WarehouseCode>
+        <StockQuantity>500</StockQuantity>
+        <ExpirationDate>2027-12-31</ExpirationDate>
+        <SafeMinCelsius>2</SafeMinCelsius>
+        <SafeMaxCelsius>8</SafeMaxCelsius>
+      </InventoryBatch>
+    </GetInventoryBatchResponse>
+  </soap:Body>
+</soap:Envelope>

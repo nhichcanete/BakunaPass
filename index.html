@@ -4,23 +4,25 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>BakunaPass</title>
-    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
     <nav class="government-nav" aria-label="Main navigation">
       <div class="nav-inner">
-        <a class="government-wordmark" href="#dashboard">DEPARTMENT OF HEALTH</a>
+        <a class="government-wordmark" href="#dashboard">PUBLIC HEALTH OPERATIONS</a>
         <div class="nav-links">
-          <a href="#dashboard">Dashboard</a>
-          <a href="#registry">Registry</a>
-          <a href="#notifications">Notifications</a>
-          <a href="#record-form">Add a record</a>
+          <a href="#dashboard" data-roles="health_worker" hidden>Dashboard</a>
+          <a href="#operations" data-roles="facility_user,health_worker,cold_chain_officer,operations_manager,admin" hidden>Operations portal</a>
+          <a href="#registry" data-roles="health_worker" hidden>Registry</a>
+          <a href="#notifications" data-roles="health_worker" hidden>Notifications</a>
+          <a href="#record-form" data-roles="health_worker" hidden>Add a record</a>
         </div>
-        <span class="nav-note">Public health services</span>
+        <span class="nav-note">Health operations</span>
+        <a id="nav-account" class="nav-account" href="/auth.html">Sign in <span aria-hidden="true">↗</span></a>
       </div>
     </nav>
 
-    <section class="city-banner" aria-label="BakunaPass, City of Manila public health registry">
+    <section class="city-banner" aria-label="BakunaPass community health services">
       <div class="banner-inner">
         <div class="seal" aria-hidden="true">
           <svg viewBox="0 0 64 64" role="presentation">
@@ -31,11 +33,11 @@
           </svg>
         </div>
         <div class="banner-copy">
-          <p>Republic of the Philippines</p>
-          <h1>DEPARTMENT OF HEALTH <span>·</span> BakunaPass</h1>
-          <span class="banner-caption">Community vaccination registry</span>
+          <p>CONNECTED VACCINE SERVICES</p>
+          <h1>BakunaPass <span>·</span> Vaccine services</h1>
+          <span class="banner-caption">RHU requisitions and cold-chain operations</span>
         </div>
-        <div class="status-chip"><span></span> Registry active</div>
+        <div class="status-chip"><span></span> Operations portal</div>
       </div>
       <svg class="skyline" viewBox="0 0 1440 150" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
         <g fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round">
@@ -46,7 +48,111 @@
     </section>
 
     <main class="app-shell">
-      <section class="page-heading" id="dashboard">
+      <section class="panel operations-panel" id="operations">
+        <div class="panel-heading">
+          <p class="eyebrow">RHU · PHO · Cold chain</p>
+          <h2>BakunaPass operations portal</h2>
+          <p>Coordinate clinic requisitions, cold-chain monitoring, and warehouse stock from one connected workspace.</p>
+        </div>
+        <p id="operations-feedback" class="action-feedback" role="status" aria-live="polite"></p>
+        <div class="operations-auth">
+          <div id="operations-session" class="operations-session" hidden>
+            <div>
+              <strong id="operations-role"></strong>
+              <span id="operations-session-note"></span>
+            </div>
+            <button id="operations-logout" class="secondary small" type="button">Sign out</button>
+          </div>
+          <div id="operations-access" class="operations-access">
+            <div>
+              <span class="access-icon" aria-hidden="true">↗</span>
+              <div>
+                <strong>Your workspace is ready when you are</strong>
+                <p>Sign in with your staff account to access the tools assigned to your role.</p>
+              </div>
+            </div>
+            <a class="button-link" href="/auth.html">Continue to sign in <span aria-hidden="true">→</span></a>
+          </div>
+        </div>
+
+        <div id="operations-workspace" hidden>
+          <div class="operations-toolbar">
+            <p>Shared backend data · sample inventory</p>
+            <button id="operations-refresh" class="secondary small" type="button">Refresh data</button>
+          </div>
+          <div class="operations-grid">
+            <section class="operations-card" id="operations-requisitions" hidden>
+              <h3>Clinic vaccine requisitions</h3>
+              <p id="requisition-help" class="operations-help">Track submitted requests and their latest review status.</p>
+              <form id="requisition-create" class="operations-form">
+                <label>Clinic ID<input name="clinicId" value="RHU-0101" pattern="(CLN|RHU)-[A-Za-z0-9\-]{2,20}" required /></label>
+                <label>Vaccine type<input name="vaccineType" placeholder="e.g. Measles" required /></label>
+                <label>Vaccine batch
+                  <select name="vaccineId" id="requisition-batch">
+                    <option value="">No batch assigned yet</option>
+                  </select>
+                </label>
+                <label>Quantity<input name="quantity" type="number" min="1" max="100000" value="20" required /></label>
+                <button type="submit">Submit requisition</button>
+              </form>
+              <div id="operations-requisition-list" class="operations-data"></div>
+            </section>
+
+            <section class="operations-card" id="operations-telemetry" hidden>
+              <h3>Shipment telemetry</h3>
+              <form id="telemetry-create" class="operations-form">
+                <label>Registered vaccine batch
+                  <select name="vaccineId" id="telemetry-batch" required>
+                    <option value="">Choose a batch</option>
+                  </select>
+                </label>
+                <label>Temperature (°C)<input name="currentTempCelsius" type="number" min="-100" max="100" step="0.1" required /></label>
+                <label>Humidity (%)<input name="humidityPercent" type="number" min="0" max="100" step="0.1" /></label>
+                <button type="submit">Record sensor reading</button>
+              </form>
+              <div id="operations-telemetry-list" class="operations-data"></div>
+            </section>
+
+            <section class="operations-card" id="operations-risk" hidden>
+              <h3>Explainable shipment risk assessment</h3>
+              <form id="risk-lookup" class="operations-form risk-form">
+                <label>Shipment ID<input name="shipmentId" placeholder="e.g. SHIP-1001" required /></label>
+                <button type="submit">Assess shipment</button>
+              </form>
+              <div id="operations-risk-result" class="operations-data" aria-live="polite"></div>
+            </section>
+
+            <section class="operations-card" id="operations-stock" hidden>
+              <h3>Legacy warehouse inventory</h3>
+              <div id="operations-stock-list" class="operations-data"></div>
+              <form id="stock-reserve" class="operations-form">
+                <label>Batch
+                  <select name="vaccineId" id="stock-batch" required>
+                    <option value="">Choose a batch</option>
+                  </select>
+                </label>
+                <label>Quantity<input name="quantity" type="number" min="1" max="100000" value="1" required /></label>
+                <button type="submit">Reserve stock</button>
+              </form>
+            </section>
+
+            <section class="operations-card" id="operations-access-requests" hidden>
+              <h3>Staff account management</h3>
+              <p class="operations-help">Review staff details, assign the least-privilege role, and suspend access when needed. Administrator accounts are protected.</p>
+              <div id="operations-access-request-list" class="operations-data"></div>
+            </section>
+
+            <section class="operations-card" id="operations-system-status" data-roles="admin" hidden>
+              <h3>Service health</h3>
+              <p class="operations-help">Read-only connectivity status for the integrated backend services.</p>
+              <div id="operations-service-status" class="operations-data" aria-live="polite"></div>
+            </section>
+          </div>
+          <p class="operations-safety-note">Shipment risk assessments are operational indicators. Verify source data and follow authorized cold-chain procedures for vaccine-safety decisions.</p>
+        </div>
+      </section>
+
+      <section class="page-heading" id="dashboard" data-roles="health_worker" hidden>
         <div>
           <p class="eyebrow">Public health · Resident services</p>
           <h2>Vaccination dashboard</h2>
@@ -55,14 +161,14 @@
         <span class="updated-note">HEALTH REGISTRY</span>
       </section>
 
-      <section class="summary" id="summary" aria-label="Registry summary"></section>
+      <section class="summary" id="summary" data-roles="health_worker" aria-label="Registry summary" hidden></section>
 
-      <div class="report-actions">
+      <div class="report-actions" data-roles="health_worker" hidden>
         <button id="export-csv" type="button">Export CSV</button>
         <button id="print-report" class="secondary" type="button">Print report</button>
       </div>
 
-      <section class="panel chart-panel compact-panel">
+      <section class="panel chart-panel compact-panel" data-roles="health_worker" hidden>
         <div class="panel-heading">
           <h2>Coverage overview</h2>
           <p>Current distribution of status categories across the registry.</p>
@@ -70,7 +176,7 @@
         <div id="status-chart" class="chart-grid"></div>
       </section>
 
-      <section class="panel form-panel compact-panel" id="record-form">
+      <section class="panel form-panel compact-panel" id="record-form" data-roles="health_worker" hidden>
         <div class="panel-heading">
           <h2>Resident vaccination record</h2>
           <p>Enter the latest immunization details for verification.</p>
@@ -120,7 +226,7 @@
         </form>
       </section>
 
-      <section class="panel compact-panel" id="notifications">
+      <section class="panel compact-panel" id="notifications" data-roles="health_worker" hidden>
         <div class="panel-heading">
           <h2>Patient notifications</h2>
           <p>Choose a patient to automatically fill their email address and suggested message. Review or edit the details in the message pop-out before sending through the configured email backend.</p>
@@ -129,7 +235,7 @@
         <div id="notification-list" class="notification-list"></div>
       </section>
 
-      <section class="panel list-panel" id="registry">
+      <section class="panel list-panel" id="registry" data-roles="health_worker" hidden>
         <div class="panel-heading split-heading">
           <div>
             <h2>Population health status</h2>
@@ -172,9 +278,10 @@
 
     <footer class="site-footer">
       <div><strong>BakunaPass</strong><span> A community vaccination tracking service</span></div>
-      <span>For local health registry use</span>
+      <span>Authorized health-service staff only</span>
     </footer>
 
-    <script type="module" src="app.js"></script>
+    <script type="module" src="/app.js"></script>
+    <script type="module" src="/integration-ui.js"></script>
   </body>
 </html>

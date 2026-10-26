@@ -3,9 +3,15 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
+  "engines": {
+    "node": ">=22.13.0"
+  },
   "scripts": {
     "start": "node server.js",
-    "test": "node --test"
+    "test": "node --import ./scripts/isolated-test-config.js --test",
+    "seed:accounts": "node scripts/seed-accounts.js",
+    "email:verify": "node scripts/verify-smtp.js",
+    "load:test": "node scripts/loadtest.js --url http://127.0.0.1:5002/telemetry/VAX-1001 --duration 10 --concurrency 1,5,10"
   },
   "dependencies": {
     "dotenv": "^16.4.7",
