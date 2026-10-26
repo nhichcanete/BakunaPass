@@ -25,10 +25,12 @@ const contentTypes = {
   '.css': 'text/css; charset=utf-8',
   '.html': 'text/html; charset=utf-8',
   '.js': 'text/javascript; charset=utf-8',
+  '.svg': 'image/svg+xml',
 };
 const publicFiles = new Map([
   ['/', 'index.html'],
   ['/index.html', 'index.html'],
+  ['/favicon.svg', 'favicon.svg'],
   ['/auth', 'auth.html'],
   ['/auth.html', 'auth.html'],
   ['/login', 'auth.html'],
